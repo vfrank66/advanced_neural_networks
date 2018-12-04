@@ -43,12 +43,12 @@ class TextData:
 
         
     def save(self):
-        self.filename = Path(os.path.join(currentDir, "./model/text_data.pkl"))
+        self.filename = Path(os.path.join(currentDir, "text_data.pkl"))
         pickle.dump(self, open(self.filename,'wb'))
     
     @classmethod
     def load(self):
-        self.filename = Path(os.path.join(currentDir, "./model/text_data.pkl"))
+        self.filename = Path(os.path.join(currentDir, "text_data.pkl"))
         return pickle.load(open(self.filename,'rb'))
 
 
@@ -174,11 +174,13 @@ def generate_batch(input_data, output_text_data, text_data, batch_size=128):
 
 
 def build_model(text_data, hidden_units=256):
-    encoder_inputs = Input(shape=(None,), name='encoder_inputs')
-    encoder_embedding = Embedding(input_dim=text_data.num_encoder_tokens, output_dim=hidden_units,
-                                  input_length=text_data.encoder_max_seq_length, name='encoder_embedding')
+    #encoder_inputs = Input(shape=(None,), name='encoder_inputs')
+    encoder_inputs = Input(shape=(None,text_data.num_encoder_tokens), name='encoder_inputs')
+    # encoder_embedding = Embedding(input_dim=text_data.num_encoder_tokens, output_dim=hidden_units,
+    #                               input_length=text_data.encoder_max_seq_length, name='encoder_embedding')
     encoder_lstm = LSTM(units=hidden_units, return_state=True, name='encoder_lstm')
-    encoder_outputs, encoder_state_h, encoder_state_c = encoder_lstm(encoder_embedding(encoder_inputs))
+    #encoder_outputs, encoder_state_h, encoder_state_c = encoder_lstm(encoder_embedding(encoder_inputs))
+    encoder_outputs, encoder_state_h, encoder_state_c = encoder_lstm(encoder_inputs)
     encoder_states = [encoder_state_h, encoder_state_c]
 
     decoder_inputs = Input(shape=(None, text_data.num_decoder_tokens), name='decoder_inputs')
@@ -214,7 +216,7 @@ for line in text_data.input_texts[:10]:
 print('')
 print("text_data.target_texts")
 print('')
-for line in text_data.target_texts[1:10]:
+for line in text_data.target_texts[:10]:
     print(line)
 
 
@@ -254,7 +256,7 @@ print('HW4: Explain the model architecture in your own words')
 print('Part 1 of the model is the encoding, this multi-layer part produced a fixed length encoding of the text_data.')
 print('The input here is the ')
 print('Part 2 of the model is the decoding, this multi-layer part produces the prediction for the output sequence.')
-print('The  input ')
+print('The  input is the encoder state and fixed length encoding')
 print('Part 3 is tying the model together')
 
 
@@ -262,7 +264,8 @@ print('Part 3 is tying the model together')
 
 
 print('HW5: How does the encoder condition the decoder? What are the inputs and outputs to the decoder?')
-print('')
+print('The encoder creates a fixed length encoding, which is then used an the initial state of the decoder. Giving the decoder context')
+print('In addition the decoder takes in the number of decode tokens, different here from encoder tokens by 2 additional tokens and the same number of hidden units.')
 
 
 # In[59]:
@@ -281,8 +284,8 @@ test_num_batches = len(X_test) // BATCH_SIZE
 # In[60]:
 
 
-TENSORBOARD = Path(os.path.join(currentDir, 'TensorBoard/'))
-WEIGHT_FILE_PATH = Path(os.path.join(currentDir, 'model/word-weights.h5'))
+TENSORBOARD = 'TensorBoard/'
+WEIGHT_FILE_PATH = 'word-weights.h5'
 checkpoint = ModelCheckpoint(filepath=WEIGHT_FILE_PATH, save_best_only=True)
 tbCallBack = TensorBoard(log_dir=TENSORBOARD, histogram_freq=0, write_graph=True, write_images=True)
 
@@ -292,17 +295,18 @@ tbCallBack = TensorBoard(log_dir=TENSORBOARD, histogram_freq=0, write_graph=True
 
 model.fit_generator(generator=train_gen,
                     steps_per_epoch=train_num_batches,
-                    epochs=100,
+                    epochs=10,
                     verbose=1,
                     validation_data=test_gen,
-                    validation_steps=test_num_batches,
-                    callbacks=[checkpoint, tbCallBack ])
+                    validation_steps=test_num_batches
+                    # ,callbacks=[checkpoint, tbCallBack ]
+                    )
 
 
 # In[62]:
 
 
-WEIGHT_FILE_PATH = Path(os.path.join(currentDir, 'model/weights.h5'))
+WEIGHT_FILE_PATH = 'weights.h5'
 model.save_weights(WEIGHT_FILE_PATH)
 
 
